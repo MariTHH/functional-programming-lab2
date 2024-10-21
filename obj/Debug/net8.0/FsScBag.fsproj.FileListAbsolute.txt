@@ -112,3 +112,4 @@ D:\study\5 sem\FirstIonideProject\obj\Debug\net8.0\refint\FsScBag.dll
 D:\study\5 sem\FirstIonideProject\obj\Debug\net8.0\FsScBag.pdb
 D:\study\5 sem\FirstIonideProject\obj\Debug\net8.0\FsScBag.genruntimeconfig.cache
 D:\study\5 sem\FirstIonideProject\obj\Debug\net8.0\ref\FsScBag.dll
+D:\study\5 sem\FirstIonideProject\obj\Debug\net8.0\FsScBag.sourcelink.json

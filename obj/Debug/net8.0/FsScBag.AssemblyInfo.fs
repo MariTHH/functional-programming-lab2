@@ -10,7 +10,7 @@ open System.Reflection
 [<assembly: System.Reflection.AssemblyCompanyAttribute("FsScBag")>]
 [<assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")>]
 [<assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")>]
-[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")>]
+[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+350d7424ca97aca8453cfdfa84cfc1c55088459f")>]
 [<assembly: System.Reflection.AssemblyProductAttribute("FsScBag")>]
 [<assembly: System.Reflection.AssemblyTitleAttribute("FsScBag")>]
 [<assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")>]

@@ -40,7 +40,7 @@ jobs:
           fantomas ./src/
         
       - name: Run project
-        run: dotnet run --project ./src/
+        run: dotnet run --project ./
         
       - name: Tests
-        run: dotnet test --logger "console;verbosity=detailed" ./tests
+        run: dotnet test --logger "console;verbosity=detailed" 
