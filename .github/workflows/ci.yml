@@ -32,15 +32,15 @@ jobs:
       - name: Lint
         run: |
           dotnet tool install -g dotnet-fsharplint
-          dotnet fsharplint lint ./
+          dotnet fsharplint lint ./src/
 
       - name: Formatter fantomas
         run: |
           dotnet tool install -g fantomas-tool
-          fantomas ./*.fs 
+          fantomas ./src/*.fs 
         
       - name: Run project
-        run: dotnet run --project ./
+        run: dotnet run --project ./src/
         
       - name: Tests
         run: dotnet test --logger "console;verbosity=detailed" ./tests
