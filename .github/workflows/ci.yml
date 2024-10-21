@@ -37,7 +37,7 @@ jobs:
       - name: Formatter fantomas
         run: |
           dotnet tool install -g fantomas-tool
-          fantomas ./src/*.fs 
+          fantomas ./src/
         
       - name: Run project
         run: dotnet run --project ./src/
