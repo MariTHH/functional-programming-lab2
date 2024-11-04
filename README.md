@@ -27,7 +27,7 @@
 
 ### Описание задач
 
-**Варианты** (колонка -- интерфей -- Separate Chaining Hashmap, строка -- структура данных -- Bag(multiset)): `sc-bag`
+**Варианты** (колонка -- интерфейс -- Separate Chaining Hashmap, строка -- структура данных -- Bag(multiset)): `sc-bag`
 
 ---
 
@@ -36,140 +36,171 @@
 ### Добавление и удаление элементов
 
 ```fsharp
-let rec add key value (bag: ScBag<'Key, 'Value>) =
-    match bag with
-    | Empty -> Node(key, [value], Empty)
-    | Node(k, values, next) when k = key -> Node(k, value :: values, next)
-    | Node(k, values, next) -> Node(k, values, add key value next)
+    let addToBag (bag: Bag<'T>) (key: int) (element: 'T) : Bag<'T> =
+        let existing =
+            match Map.tryFind key bag with
+            | Some elements -> elements
+            | None -> []
+
+        bag |> Map.add key (element :: existing)
 ```
 
 ```fsharp
-let rec remove key value (bag: ScBag<'Key, 'Value>) =
-    match bag with
-    | Empty -> Empty
-    | Node(k, values, next) when k = key ->
-        let updatedValues = List.filter (fun v -> v <> value) values
-        if List.isEmpty updatedValues then next
-        else Node(k, updatedValues, next)
-    | Node(k, values, next) -> Node(k, values, remove key value next)
+    let removeOneFromBag (bag: Bag<'T>) (key: int) (element: 'T) : Bag<'T> =
+        match Map.tryFind key bag with
+        | Some elements ->
+            let newList =
+                match elements |> List.tryFindIndex ((=) element) with
+                | Some index -> List.take index elements @ List.skip (index + 1) elements
+                | None -> elements
+
+            if List.isEmpty newList then
+                Map.remove key bag
+            else
+                Map.add key newList bag
+        | None -> bag
 ```
+
 ### Тест добавления и удаления элементов
 
 ```fsharp
 [<Test>]
-let ``Add elements to sc-bag`` () =
-    let bag = Empty |> add "a" 1 |> add "a" 2 |> add "b" 3
-    match bag with
-    | Node("a", [2; 1], Node("b", [3], Empty)) -> Assert.Pass()
-    | _ -> Assert.Fail("Ошибка: Не удалось добавить элементы в sc-bag.")
+    member this.``Adding elements to a bag accumulates values correctly``() =
+        let bag: Bag<int> = createBag ()
+        let updatedBag = addToBag (addToBag bag 1 42) 1 42
+        Assert.AreEqual(Map.ofList [ (1, [ 42; 42 ]) ], updatedBag)
 
-[<Test>]
-let ``Remove element from sc-bag`` () =
-    let bag = Empty |> add "a" 1 |> add "a" 2 |> remove "a" 1
-    match bag with
-    | Node("a", [2], Empty) -> Assert.Pass()
-    | _ -> Assert.Fail("Ошибка: Не удалось удалить элемент из sc-bag.")
+    [<Test>]
+    member this.``Removing an element from a bag preserves other elements``() =
+        let bag: Bag<int> = addToBag (addToBag (addToBag (createBag ()) 1 42) 1 42) 1 43
+        let updatedBag = removeOneFromBag bag 1 42
+        let expected = Map.ofList [ (1, List.sort [ 42; 43 ]) ]: Bag<int>
+
+        // Сортируем элементы в `updatedBag` и `expected` перед сравнением
+        let sortedUpdatedBag =
+            updatedBag |> Map.map (fun key elements -> List.sort elements)
+
+        let sortedExpected = expected |> Map.map (fun key elements -> List.sort elements)
+
+        Assert.AreEqual(sortedExpected, sortedUpdatedBag)
+
+    [<Test>]
+    member this.``Removing all instances of an element deletes the key``() =
+        let bag: Bag<int> = addToBag (addToBag (createBag ()) 1 42) 1 42
+        let updatedBag1 = removeOneFromBag bag 1 42
+        let updatedBag2 = removeOneFromBag updatedBag1 1 42
+        let expected = Map.empty: Bag<int>
+        Assert.AreEqual(expected, updatedBag2)
 ```
 
 ### Фильтрация
 
 ```fsharp
-let rec filter pred (bag: ScBag<'Key, 'Value>) =
-    match bag with
-    | Empty -> Empty
-    | Node(k, values, next) ->
-        let filteredValues = List.filter pred values
-        if List.isEmpty filteredValues then filter pred next
-        else Node(k, filteredValues, filter pred next)
+    let filterBag (bag: Bag<'T>) (predicate: 'T -> bool) : Bag<'T> =
+        bag
+        |> Map.map (fun _ elements -> List.filter predicate elements)
+        |> Map.filter (fun _ elements -> not (List.isEmpty elements))
 ```
 
 ### Тест фильтрации
 
 ```fsharp
-[<Test>]
-let ``Filter works correctly`` () =
-    let bag = Empty |> add "a" 1 |> add "b" 2 |> add "c" 3
-    let filteredBag = filter (fun x -> x > 1) bag
-    match filteredBag with
-    | Node("b", [2], Node("c", [3], Empty)) -> Assert.Pass()
-    | _ -> Assert.Fail("Ошибка: Фильтрация не работает корректно.")
+    [<Test>]
+    member this.``Filtering a bag based on a predicate removes unwanted elements``() =
+        let bag = addToBag (addToBag (createBag ()) 1 1) 2 2
+        let filteredBag = filterBag bag (fun x -> x % 2 = 0)
+        Assert.AreEqual(Map.ofList [ (2, [ 2 ]) ], filteredBag)
 ```
 
 #### Отображение(map)
 
 ```fsharp
-let rec map f (bag: ScBag<'Key, 'Value>) =
-    match bag with
-    | Empty -> Empty
-    | Node(k, values, next) -> 
-        let mappedValues = List.map f values
-        Node(k, mappedValues, map f next)
-```
-
-### Тест отображения
-
-```fsharp
-[<Test>]
-let ``Map works correctly`` () =
-    let bag = Empty |> add "a" 1 |> add "b" 2
-    let mappedBag = map ((*) 2) bag
-    match mappedBag with
-    | Node("a", [2], Node("b", [4], Empty)) -> Assert.Pass()
-    | _ -> Assert.Fail("Ошибка: Отображение не работает корректно.")
+    let mapBag (bag: Bag<'T>) (mapper: 'T -> 'U) : Bag<'U> =
+        bag |> Map.map (fun _ elements -> List.map mapper elements)
 ```
 
 #### Свертки (левая и правая)
 
 ```fsharp
-let rec foldLeft f acc (bag: ScBag<'Key, 'Value>) =
-    match bag with
-    | Empty -> acc
-    | Node(_, values, next) -> 
-        let newAcc = List.fold f acc values
-        foldLeft f newAcc next
+ let foldLeft (bag: Bag<'T>) (folder: 'State -> 'T -> 'State) (initialState: 'State) : 'State =
+        bag
+        |> Map.fold (fun state _ elements -> List.fold folder state elements) initialState
 ```
 
 ```fsharp
-let rec foldRight f (bag: ScBag<'Key, 'Value>) acc =
-    match bag with
-    | Empty -> acc
-    | Node(_, values, next) -> 
-        let newAcc = List.foldBack f values acc
-        foldRight f next newAcc
+    let foldRight (bag: Bag<'T>) (folder: 'T -> 'State -> 'State) (initialState: 'State) : 'State =
+        bag
+        |> Map.fold (fun state _ elements -> List.foldBack folder elements state) initialState
 ```
 
 ### Тест свертки
 
 ```fsharp
-[<Test>]
-let ``FoldLeft works correctly`` () =
-    let bag = Empty |> add "a" 1 |> add "b" 2 |> add "c" 3
-    let sum = foldLeft (+) 0 bag
-    Assert.AreEqual(6, sum, "Ошибка: Неверный результат свертки влево.")
+    [<Test>]
+    member this.``Fold left aggregates values correctly``() =
+        let bag = addToBag (addToBag (createBag ()) 1 1) 2 2
+        let result = foldLeft bag (+) 0
+        Assert.AreEqual(3, result)
+
+    [<Test>]
+    member this.``Fold right aggregates values correctly``() =
+        let bag = addToBag (addToBag (createBag ()) 1 1) 2 2
+        let result = foldRight bag (+) 0
+        Assert.AreEqual(3, result)
 ```
 
 ### Структура должна быть моноидом.
 
 ```fsharp
-let mempty = Empty
+    let createBag () : Bag<'T> = Map.empty
 
-let rec mappend (bag1: ScBag<'k, 'v>) (bag2: ScBag<'k, 'v>) : ScBag<'k, 'v> =
-    match (bag1, bag2) with
-    | (Empty, _) -> bag2
-    | (_, Empty) -> bag1
-    | (Node(key1, values1, next1), _) ->
-        let nextBag = mappend next1 bag2
-        Node(key1, values1, nextBag)
+
+    let mergeBags (bag1: Bag<'T>) (bag2: Bag<'T>) : Bag<'T> =
+        Map.fold
+            (fun acc k v ->
+                match Map.tryFind k acc with
+                | Some existingList -> Map.add k (existingList @ v) acc 
+                | None -> Map.add k v acc)
+            bag1
+            bag2
 ```
 
-### Тест для проверки ассоциативности
+### Тест для проверки свойств моноида
 ```fsharp
-[<Test>]
-let ``Monoid associativity property`` () =
-    let prop (bag1: ScBag<string, int>) (bag2: ScBag<string, int>) (bag3: ScBag<string, int>) = 
-        mappend (mappend bag1 bag2) bag3 = mappend bag1 (mappend bag2 bag3)
-        
-    Check.QuickThrowOnFailure prop
+    [<Test>]
+    member this.``Merging an empty bag with any bag returns the original bag``() =
+        let property (bag: Bag<int>) =
+            let empty = createBag ()
+            mergeBags empty bag = bag && mergeBags bag empty = bag
+
+        Check.QuickThrowOnFailure property
+
+    [<Test>]
+    member this.``Merging bags is associative``() =
+        let property (bag1: Bag<int>, bag2: Bag<int>, bag3: Bag<int>) =
+            let merged1 = mergeBags (mergeBags bag1 bag2) bag3
+            let merged2 = mergeBags bag1 (mergeBags bag2 bag3)
+            merged1 = merged2
+
+        Check.QuickThrowOnFailure property
+
+    [<Test>]
+    member this.``Merging with an empty bag returns the original bag``() =
+        let property (bag: Bag<int>) =
+            let empty = createBag ()
+            mergeBags bag empty = bag && mergeBags empty bag = bag
+
+        Check.QuickThrowOnFailure property
+
+    [<Test>]
+    member this.``Adding an element multiple times keeps all instances in the bag``() =
+        let property (key: int, element: int, bag: Bag<int>) =
+            let bagWithDuplicates = addToBag (addToBag bag key element) key element
+            let expected = addToBag (addToBag bag key element) key element
+            expected = bagWithDuplicates
+
+        Check.QuickThrowOnFailure property
+
 ```
 
 ## Выводы

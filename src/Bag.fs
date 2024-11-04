@@ -45,9 +45,10 @@ module Bag =
         |> Map.fold (fun state _ elements -> List.foldBack folder elements state) initialState
 
     let mergeBags (bag1: Bag<'T>) (bag2: Bag<'T>) : Bag<'T> =
-        if Map.isEmpty bag1 then
-            bag2
-        elif Map.isEmpty bag2 then
+        Map.fold
+            (fun acc k v ->
+                match Map.tryFind k acc with
+                | Some existingList -> Map.add k (existingList @ v) acc // Объединение списков
+                | None -> Map.add k v acc)
             bag1
-        else
-            Map.fold (fun acc k v -> List.fold (fun acc' e -> addToBag acc' k e) acc v) bag1 bag2
+            bag2
