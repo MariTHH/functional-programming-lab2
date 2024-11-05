@@ -26,4 +26,8 @@ module Program =
         let sum = foldLeft mergedBag (+) 0
         printfn "Sum of all elements in merged bag: %d" sum
 
+        let int x = x * 2
+        let newBag = mapBag bagWithElements int
+        printfn "mapBag: %A" newBag
+
         0
