@@ -18,7 +18,6 @@ type BagTests() =
         let updatedBag = removeOneFromBag bag 1 42
         let expected = Map.ofList [ (1, List.sort [ 42; 43 ]) ]: Bag<int>
 
-        // Сортируем элементы в `updatedBag` и `expected` перед сравнением
         let sortedUpdatedBag =
             updatedBag |> Map.map (fun key elements -> List.sort elements)
 

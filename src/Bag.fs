@@ -48,7 +48,7 @@ module Bag =
         Map.fold
             (fun acc k v ->
                 match Map.tryFind k acc with
-                | Some existingList -> Map.add k (existingList @ v) acc // Объединение списков
+                | Some existingList -> Map.add k (existingList @ v) acc 
                 | None -> Map.add k v acc)
             bag1
             bag2
