@@ -57,4 +57,7 @@ module Program =
         let conflictingBag = empty<int> |> add 2 |> add -2
         printfn "Bag с элементами 2 и -2, которые могут иметь одинаковые хэши: %A" conflictingBag
 
+        let updated = removeAll 2 conflictingBag
+        printfn "Bag с элементами 2 и -2, которые могут иметь одинаковые хэши: %A" updated
+
         0

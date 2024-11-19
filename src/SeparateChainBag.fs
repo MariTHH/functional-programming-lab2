@@ -54,13 +54,18 @@ module SeparateChainBag =
 
     // Удаление всех экземпляров элемента (аналог s.erase(x))
     let removeAll (item: 'T) (bag: Bag<'T>) : Bag<'T> =
-        let h = hash item
+        let h = hash item 
 
-        let updatedChains =
-            bag.Chains
-            |> List.filter (fun chain -> chain.Hash <> h || not (List.exists ((=) item) chain.Elements))
-
-        { Chains = updatedChains } |> sortBag
+        let updatedChains = 
+            bag.Chains 
+            |> List.collect (fun chain ->
+                if chain.Hash = h then 
+                    let filteredElements = chain.Elements |> List.filter ((<>) item) 
+                    if filteredElements.IsEmpty then [] 
+                    else [ { chain with Elements = filteredElements } ] 
+                else 
+                    [ chain ]) 
+        { Chains = updatedChains } |> sortBag 
 
     let add (item: 'T) (bag: Bag<'T>) : Bag<'T> =
         let h = hash item
