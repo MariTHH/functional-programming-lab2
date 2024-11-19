@@ -7,7 +7,6 @@ open NUnit.Framework
 [<TestFixture>]
 type BagPropertyTests() =
 
-    // Свойство: добавление элемента в мешок, а затем его поиск, должно вернуть этот элемент
     [<Test>]
     member _.``Add and find element property test``() =
         let property (element: int) =
@@ -20,7 +19,6 @@ type BagPropertyTests() =
 
         Check.Quick property
 
-    // Свойство: если мы добавим и удалим элемент, его не будет в мешке
     [<Test>]
     member _.``Add, remove, and ensure element is absent property test``() =
         let property (element: int) =
@@ -33,7 +31,6 @@ type BagPropertyTests() =
 
         Check.Quick property
 
-    // Свойство: фильтрация по условию возвращает только те элементы, которые удовлетворяют условию
     [<Test>]
     member _.``Filter should return only matching elements property test``() =
         let property (predicate: int -> bool) (elements: int list) =
@@ -49,7 +46,6 @@ type BagPropertyTests() =
 
         Check.Quick property
 
-    // Свойство: свертка с начальным значением и функцией свертки должна учитывать все элементы
     [<Test>]
     member _.``Fold left should accumulate all elements property test``() =
         let property (elements: int list) =
@@ -59,7 +55,6 @@ type BagPropertyTests() =
 
         Check.Quick property
 
-    // Свойство: слияние двух мешков должно содержать все элементы из обоих мешков
     [<Test>]
     member _.``Merge should combine elements from both bags property test``() =
         let property (elements1: int list) (elements2: int list) =
@@ -78,7 +73,6 @@ type BagPropertyTests() =
             let bag = elements |> List.fold (fun acc e -> add e acc) empty<int>
             let mergedBagWithEmpty1 = merge bag empty<int>
             let mergedBagWithEmpty2 = merge empty<int> bag
-            // После слияния с пустым мешком мешок должен остаться неизменным
             bag = mergedBagWithEmpty1 && bag = mergedBagWithEmpty2
 
         Check.Quick property
@@ -93,7 +87,6 @@ type BagPropertyTests() =
             let merged1 = merge (merge bag1 bag2) bag3
             let merged2 = merge bag1 (merge bag2 bag3)
 
-            // Слияние должно быть ассоциативным, порядок не должен менять результат
             merged1 = merged2
 
         Check.Quick property

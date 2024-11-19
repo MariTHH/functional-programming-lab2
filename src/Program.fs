@@ -6,7 +6,7 @@ module Program =
     open SeparateChainBag
 
     [<EntryPoint>]
-    let main argv =
+     let main argv =
         let intBag = empty<int>
         printfn "Создан пустой Bag для int: %A" intBag
 
@@ -30,13 +30,9 @@ module Program =
         printfn "Объединение двух Bag для int: %A" mergedIntBag
 
         let stringBag = empty<string>
-
-        let stringBag =
-            stringBag |> add "apple" |> add "banana" |> add "cherry" |> add "banana"
-
+        let stringBag = stringBag |> add "apple" |> add "banana" |> add "cherry" |> add "banana"
         printfn "Bag для строк: %A" stringBag
 
-        // Фильтрация строк, начинающихся с буквы 'b'
         let filteredStringBag = stringBag |> filter (fun s -> s.StartsWith("b"))
         printfn "Bag для строк, начинающихся с 'b': %A" filteredStringBag
 

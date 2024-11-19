@@ -23,8 +23,8 @@ type BagTests() =
 
     [<Test>]
     member _.``Remove element from bag should remove it``() =
-        let bag = [ 1; 2; 3 ] |> List.fold (fun acc e -> add e acc) empty<int>
-        let updatedBag = remove 2 bag
+        let bag = [ 1; 2; 2; 3 ] |> List.fold (fun acc e -> add e acc) empty<int>
+        let updatedBag = removeAll 2 bag
         let found = find 2 updatedBag
         Assert.AreEqual(None, found)
 
