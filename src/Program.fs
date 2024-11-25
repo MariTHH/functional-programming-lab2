@@ -54,10 +54,27 @@ module Program =
         let intBagAfterRemoveAll = intBag |> removeAll 3
         printfn "Bag после удаления всех экземпляров элемента 3: %A" intBagAfterRemoveAll
 
-        let conflictingBag = empty<int> |> add 2 |> add -2
+        let conflictingBag = empty<int> |> add -2 |> add 2 |> add -2
         printfn "Bag с элементами 2 и -2, которые могут иметь одинаковые хэши: %A" conflictingBag
 
         let updated = removeAll 2 conflictingBag
         printfn "Bag с элементами 2 и -2, которые могут иметь одинаковые хэши: %A" updated
+
+
+
+        let bag502 = empty<int> |> add 3 |> add 5 |> add 5
+        let bag500 = empty<int> |> add 4 |> add 7
+        let bag501 = empty<int> |> add 2 |> add 5 |> add -2
+        
+        
+        let merged5000 = merge (merge bag502 bag501) bag500
+        let merged5001 = merge bag502 (merge bag501 bag500)
+
+        printfn "Об: %A" merged5000
+        printfn "Об: %A" merged5001
+
+        let b = merged5001 = merged5000
+
+        printfn "Об: %A" b
 
         0

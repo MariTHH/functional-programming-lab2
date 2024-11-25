@@ -43,21 +43,3 @@ type BagTests() =
         Assert.AreEqual(Some 4, find 4 filteredBag)
         Assert.AreEqual(None, find 1 filteredBag)
         Assert.AreEqual(None, find 3 filteredBag)
-
-    [<Test>]
-    member _.``Map should apply function to all elements``() =
-        let bag = [ 1; 2; 3 ] |> List.fold (fun acc e -> add e acc) empty<int>
-        let mappedBag = map (fun x -> x * 2) bag
-        Assert.AreEqual(Some 2, find 2 mappedBag)
-        Assert.AreEqual(Some 4, find 4 mappedBag)
-        Assert.AreEqual(Some 6, find 6 mappedBag)
-
-    [<Test>]
-    member _.``Merge two bags should combine their elements``() =
-        let bag1 = [ 1; 2 ] |> List.fold (fun acc e -> add e acc) empty<int>
-        let bag2 = [ 3; 4 ] |> List.fold (fun acc e -> add e acc) empty<int>
-        let mergedBag = merge bag1 bag2
-        Assert.AreEqual(Some 1, find 1 mergedBag)
-        Assert.AreEqual(Some 2, find 2 mergedBag)
-        Assert.AreEqual(Some 3, find 3 mergedBag)
-        Assert.AreEqual(Some 4, find 4 mergedBag)

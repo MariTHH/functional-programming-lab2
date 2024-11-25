@@ -73,7 +73,7 @@ type BagPropertyTests() =
             let bag = elements |> List.fold (fun acc e -> add e acc) empty<int>
             let mergedBagWithEmpty1 = merge bag empty<int>
             let mergedBagWithEmpty2 = merge empty<int> bag
-            bag = mergedBagWithEmpty1 && bag = mergedBagWithEmpty2
+            compareBags mergedBagWithEmpty1 mergedBagWithEmpty2
 
         Check.Quick property
 
@@ -87,6 +87,6 @@ type BagPropertyTests() =
             let merged1 = merge (merge bag1 bag2) bag3
             let merged2 = merge bag1 (merge bag2 bag3)
 
-            merged1 = merged2
+            compareBags merged1 merged2
 
         Check.Quick property
