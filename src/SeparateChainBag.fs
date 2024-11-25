@@ -100,7 +100,6 @@ module SeparateChainBag =
 
         { Chains = updatedChains }
 
-
     let compareBags (bag1: Bag<'T>) (bag2: Bag<'T>) : bool =
         let compareChains (chain1: Chain<'T>) (chain2: Chain<'T>) =
             chain1.Hash = chain2.Hash
@@ -113,8 +112,6 @@ module SeparateChainBag =
             sortedChains1 |> List.forall2 compareChains sortedChains2
         else
             false
-
-
 
     let merge (bag1: Bag<'T>) (bag2: Bag<'T>) : Bag<'T> =
         let addItemToBag bag item =
