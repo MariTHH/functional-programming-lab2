@@ -65,8 +65,8 @@ module Program =
         let bag502 = empty<int> |> add 3 |> add 5 |> add 5
         let bag500 = empty<int> |> add 4 |> add 7
         let bag501 = empty<int> |> add 2 |> add 5 |> add -2
-        
-        
+
+
         let merged5000 = merge (merge bag502 bag501) bag500
         let merged5001 = merge bag502 (merge bag501 bag500)
 
