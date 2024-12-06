@@ -51,14 +51,9 @@ module Program =
         let intBagAfterRemoveOne = intBag |> remove 1
         printfn "Bag после удаления одного экземпляра элемента 1: %A" intBagAfterRemoveOne
 
-        let intBagAfterRemoveAll = intBag |> removeAll 3
-        printfn "Bag после удаления всех экземпляров элемента 3: %A" intBagAfterRemoveAll
-
         let conflictingBag = empty<int> |> add -2 |> add 2 |> add -2
         printfn "Bag с элементами 2 и -2, которые могут иметь одинаковые хэши: %A" conflictingBag
 
-        let updated = removeAll 2 conflictingBag
-        printfn "Bag с элементами 2 и -2, которые могут иметь одинаковые хэши: %A" updated
 
 
 

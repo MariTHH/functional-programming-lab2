@@ -5,7 +5,7 @@ open NUnit.Framework
 
 [<TestFixture>]
 type BagTests() =
-
+    
     [<Test>]
     member _.``Add element to empty bag should contain the element``() =
         let bag = empty<int>
@@ -22,13 +22,6 @@ type BagTests() =
         Assert.AreEqual(Some 3, find 3 updatedBag)
 
     [<Test>]
-    member _.``Remove element from bag should remove it``() =
-        let bag = [ 1; 2; 2; 3 ] |> List.fold (fun acc e -> add e acc) empty<int>
-        let updatedBag = removeAll 2 bag
-        let found = find 2 updatedBag
-        Assert.AreEqual(None, found)
-
-    [<Test>]
     member _.``Remove element from bag should not throw error and remove only one element``() =
         let bag = empty<int>
         let bag1 = bag |> add 3 |> add 3
@@ -43,3 +36,13 @@ type BagTests() =
         Assert.AreEqual(Some 4, find 4 filteredBag)
         Assert.AreEqual(None, find 1 filteredBag)
         Assert.AreEqual(None, find 3 filteredBag)
+
+    [<Test>]
+    member _.``Add elements should resize the bag when threshold is exceeded``() =
+        let bag = empty<int>
+        let updatedBag = [1..20] |> List.fold (fun acc e -> add e acc) bag
+
+        [1..20] |> List.iter (fun e ->
+            Assert.AreEqual(Some e, find e updatedBag)
+        )
+

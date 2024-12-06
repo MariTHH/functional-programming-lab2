@@ -1,7 +1,9 @@
 namespace Bagg
 
+
 module SeparateChainBag =
     open System
+    open System.Collections.Generic
 
     type Chain<'T> = { Hash: int; Elements: 'T list }
     type Bag<'T> = { Chains: Chain<'T> list }
@@ -9,6 +11,30 @@ module SeparateChainBag =
     let empty<'T> : Bag<'T> = { Chains = [] }
 
     let private hash x = abs (x.GetHashCode())
+    let resizeThreshold = 10 
+    let resizeFactor = 2.0 
+    let resizeBag (bag: Bag<'T>) : Bag<'T> =
+        let totalElements = List.sumBy (fun chain -> List.length chain.Elements) bag.Chains
+        let loadFactor = float totalElements / float (List.length bag.Chains)
+
+        if loadFactor > 0.7 then
+            let newSize = int (float (List.length bag.Chains) * resizeFactor)
+            let newChains = Array.init newSize (fun _ -> [])
+
+            let rec rehashChains chains =
+                match chains with
+                | [] -> ()
+                | { Hash = h; Elements = elems } :: rest ->
+                    let newHash = (h % newSize + newSize) % newSize
+                    newChains.[newHash] <- newChains.[newHash] @ elems
+                    rehashChains rest
+
+            rehashChains bag.Chains
+            { Chains = newChains |> Array.toList |> List.mapi (fun i elements -> { Hash = i; Elements = elements }) }
+        else
+            bag
+
+
 
     let find (item: 'T) (bag: Bag<'T>) : 'T option =
         let h = hash item
@@ -67,11 +93,14 @@ module SeparateChainBag =
                 let updatedChain =
                     { chain with
                         Elements = item :: chain.Elements }
-
                 updatedChain :: (List.filter (fun c -> c.Hash <> h) bag.Chains)
             | None -> { Hash = h; Elements = [ item ] } :: bag.Chains
 
-        { Chains = updatedChains }
+        if List.length updatedChains > resizeThreshold then
+            resizeBag { Chains = updatedChains }
+        else
+            { Chains = updatedChains }
+
 
     let filter (predicate: 'T -> bool) (bag: Bag<'T>) : Bag<'T> =
         let updatedChains =
@@ -99,19 +128,31 @@ module SeparateChainBag =
                       Elements = updatedElements })
 
         { Chains = updatedChains }
+    
+    let countElement (bag: Bag<'T>) (item: 'T) : int =
+        bag.Chains
+        |> List.sumBy (fun chain -> chain.Elements |> List.filter ((=) item) |> List.length)
+
+    let toListWithCounter (bag: Bag<'T>) : ('T * int) list =
+        bag.Chains
+        |> List.collect (fun chain -> chain.Elements)
+        |> List.groupBy id
+        |> List.map (fun (item, occurrences) -> (item, List.length occurrences))
 
     let compareBags (bag1: Bag<'T>) (bag2: Bag<'T>) : bool =
-        let compareChains (chain1: Chain<'T>) (chain2: Chain<'T>) =
-            chain1.Hash = chain2.Hash
-            && List.sort chain1.Elements = List.sort chain2.Elements
+        let bag1Counts = toListWithCounter bag1 |> dict
+        let bag2Counts = toListWithCounter bag2 |> dict
 
-        if List.length bag1.Chains = List.length bag2.Chains then
-            let sortedChains1 = bag1.Chains |> List.sortBy (fun chain -> chain.Hash)
-            let sortedChains2 = bag2.Chains |> List.sortBy (fun chain -> chain.Hash)
+        let allKeys = Seq.append bag1Counts.Keys bag2Counts.Keys |> Set.ofSeq
 
-            sortedChains1 |> List.forall2 compareChains sortedChains2
-        else
-            false
+        allKeys
+        |> Seq.fold (fun acc key ->
+            match bag1Counts.TryGetValue(key), bag2Counts.TryGetValue(key) with
+            | (true, count1), (true, count2) when count1 = count2 -> acc  
+            | (true, count1), (false, _) -> acc && count1 = 0  
+            | (false, _), (true, count2) -> acc && count2 = 0  
+            | _ -> false) true
+
 
     let merge (bag1: Bag<'T>) (bag2: Bag<'T>) : Bag<'T> =
         let addItemToBag bag item =
@@ -134,14 +175,17 @@ module SeparateChainBag =
                     |> List.fold (fun b e -> { b with Chains = addItemToBag b e }) acc)
                 bag1
 
+
         let filteredBag =
             { mergedBag with
                 Chains = List.filter (fun chain -> not (List.isEmpty chain.Elements)) mergedBag.Chains }
 
-        if List.isEmpty filteredBag.Chains then
-            { Chains = [] }
+ 
+        if List.length filteredBag.Chains > resizeThreshold then
+            resizeBag filteredBag
         else
             filteredBag
+
 
     let foldLeft (folder: 'State -> 'T -> 'State) (state: 'State) (bag: Bag<'T>) : 'State =
         bag.Chains

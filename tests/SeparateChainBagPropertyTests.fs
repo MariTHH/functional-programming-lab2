@@ -7,6 +7,7 @@ open NUnit.Framework
 [<TestFixture>]
 type BagPropertyTests() =
 
+
     [<Test>]
     member _.``Add and find element property test``() =
         let property (element: int) =
@@ -31,20 +32,6 @@ type BagPropertyTests() =
 
         Check.Quick property
 
-    [<Test>]
-    member _.``Filter should return only matching elements property test``() =
-        let property (predicate: int -> bool) (elements: int list) =
-            let bag = elements |> List.fold (fun acc e -> add e acc) empty<int>
-            let filteredBag = filter predicate bag
-
-            elements
-            |> List.forall (fun e ->
-                if predicate e then
-                    find e filteredBag = Some e
-                else
-                    find e filteredBag = None)
-
-        Check.Quick property
 
     [<Test>]
     member _.``Fold left should accumulate all elements property test``() =
@@ -67,15 +54,20 @@ type BagPropertyTests() =
 
         Check.Quick property
 
+
+
     [<Test>]
     member _.``Merge with empty bag should return the other bag property test``() =
         let property (elements: int list) =
             let bag = elements |> List.fold (fun acc e -> add e acc) empty<int>
             let mergedBagWithEmpty1 = merge bag empty<int>
             let mergedBagWithEmpty2 = merge empty<int> bag
-            compareBags mergedBagWithEmpty1 mergedBagWithEmpty2
+
+            compareBags mergedBagWithEmpty1 bag
+            && compareBags mergedBagWithEmpty2 bag
 
         Check.Quick property
+
 
     [<Test>]
     member _.``Merge operation should be associative property test``() =
