@@ -123,15 +123,15 @@ module SeparateChainBag =
         let bag1Counts = toListWithCounter bag1 |> dict
         let bag2Counts = toListWithCounter bag2 |> dict
 
-        let allKeys = Seq.append bag1Counts.Keys bag2Counts.Keys |> Set.ofSeq
+        let compareKey (key: 'T) : bool =
+            let count1 = bag1Counts.TryGetValue(key) |> function | (true, count) -> count | _ -> 0
+            let count2 = bag2Counts.TryGetValue(key) |> function | (true, count) -> count | _ -> 0
+            count1 = count2
 
-        allKeys
-        |> Seq.fold (fun acc key ->
-            match bag1Counts.TryGetValue(key), bag2Counts.TryGetValue(key) with
-            | (true, count1), (true, count2) when count1 = count2 -> acc  
-            | (true, count1), (false, _) -> acc && count1 = 0  
-            | (false, _), (true, count2) -> acc && count2 = 0  
-            | _ -> false) true
+        (bag1Counts.Keys |> Seq.append bag2Counts.Keys)
+        |> Seq.distinct
+        |> Seq.forall compareKey
+
 
     let merge (bag1: Bag<'T>) (bag2: Bag<'T>) : Bag<'T> =
         let size = max (List.length bag1.Chains) 1 
