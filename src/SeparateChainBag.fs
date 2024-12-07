@@ -116,9 +116,8 @@ module SeparateChainBag =
 
     let toListWithCounter (bag: Bag<'T>) : ('T * int) list =
         bag.Chains
-        |> List.collect (fun chain -> chain.Elements)
-        |> List.groupBy id
-        |> List.map (fun (item, occurrences) -> (item, List.length occurrences))
+        |> List.collect (fun chain -> chain.Elements)   // Собираем все элементы из цепочек                         // Оставляем только уникальные элементы
+        |> List.map (fun item -> (item, countElement bag item))  
 
     let compareBags (bag1: Bag<'T>) (bag2: Bag<'T>) : bool =
         let bag1Counts = toListWithCounter bag1 |> dict
