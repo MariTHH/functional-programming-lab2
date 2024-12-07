@@ -3,135 +3,118 @@ namespace Bagg
 
 module SeparateChainBag =
     open System
-    open System.Collections.Generic
 
     type Chain<'T> = { Hash: int; Elements: 'T list }
     type Bag<'T> = { Chains: Chain<'T> list }
 
     let empty<'T> : Bag<'T> = { Chains = [] }
 
-    let private hash x = abs (x.GetHashCode())
-    let resizeThreshold = 10 
-    let resizeFactor = 2.0 
+    let private hash (x: 'T) (size: int) = abs (x.GetHashCode()) % size
+
+    let resizeThreshold = 10
+    let resizeFactor = 2.0
+
     let resizeBag (bag: Bag<'T>) : Bag<'T> =
         let totalElements = List.sumBy (fun chain -> List.length chain.Elements) bag.Chains
-        let loadFactor = float totalElements / float (List.length bag.Chains)
+        let currentSize = List.length bag.Chains
+        let loadFactor = float totalElements / float currentSize
 
         if loadFactor > 0.7 then
-            let newSize = int (float (List.length bag.Chains) * resizeFactor)
+            let newSize = max (int (float currentSize * resizeFactor)) 1
             let newChains = Array.init newSize (fun _ -> [])
 
             let rec rehashChains chains =
                 match chains with
                 | [] -> ()
-                | { Hash = h; Elements = elems } :: rest ->
-                    let newHash = (h % newSize + newSize) % newSize
-                    newChains.[newHash] <- newChains.[newHash] @ elems
+                | { Elements = elems } :: rest ->
+                    elems |> List.iter (fun item ->
+                        let h = hash item newSize
+                        newChains.[h] <- item :: newChains.[h])
                     rehashChains rest
 
             rehashChains bag.Chains
-            { Chains = newChains |> Array.toList |> List.mapi (fun i elements -> { Hash = i; Elements = elements }) }
+
+            { Chains =
+                newChains
+                |> Array.toList
+                |> List.mapi (fun i elements -> { Hash = i; Elements = elements }) }
         else
             bag
 
-
-
     let find (item: 'T) (bag: Bag<'T>) : 'T option =
-        let h = hash item
-
-        bag.Chains
-        |> List.tryFind (fun chain -> chain.Hash = h)
-        |> Option.bind (fun chain -> chain.Elements |> List.tryFind (fun x -> x = item))
+        match bag.Chains with
+        | [] -> None
+        | _ ->
+            let h = hash item (List.length bag.Chains)
+            bag.Chains
+            |> List.tryFind (fun chain -> chain.Hash = h)
+            |> Option.bind (fun chain -> List.tryFind ((=) item) chain.Elements)
 
     let remove (item: 'T) (bag: Bag<'T>) : Bag<'T> =
-        let h = hash item
+        let h = hash item (List.length bag.Chains)
 
         let updatedChains =
             bag.Chains
             |> List.collect (fun chain ->
                 if chain.Hash = h then
-                    let rec removeOne lst =
-                        match lst with
-                        | [] -> []
-                        | x :: xs -> if x = item then xs else x :: removeOne xs
+                    match List.tryFindIndex ((=) item) chain.Elements with
+                    | Some idx ->
+                        let updatedElements =
+                            chain.Elements
+                            |> List.mapi (fun i x -> if i = idx then None else Some x)
+                            |> List.choose id
 
-                    match removeOne chain.Elements with
-                    | [] -> []
-                    | updatedElements ->
-                        [ { chain with
-                              Elements = updatedElements } ]
+                        if updatedElements.IsEmpty then
+                            [] 
+                        else
+                            [ { chain with Elements = updatedElements } ]
+                    | None ->
+                        [ chain ] 
                 else
                     [ chain ])
 
         { Chains = updatedChains }
 
-    let removeAll (item: 'T) (bag: Bag<'T>) : Bag<'T> =
-        let h = hash item
-
-        let updatedChains =
-            bag.Chains
-            |> List.collect (fun chain ->
-                if chain.Hash = h then
-                    let filteredElements = chain.Elements |> List.filter ((<>) item)
-
-                    if filteredElements.IsEmpty then
-                        []
-                    else
-                        [ { chain with
-                              Elements = filteredElements } ]
-                else
-                    [ chain ])
-
-        { Chains = updatedChains }
 
     let add (item: 'T) (bag: Bag<'T>) : Bag<'T> =
-        let h = hash item
+        let size = max (List.length bag.Chains) 1
+        let h = hash item size
 
         let updatedChains =
             match List.tryFind (fun chain -> chain.Hash = h) bag.Chains with
             | Some chain ->
                 let updatedChain =
-                    { chain with
-                        Elements = item :: chain.Elements }
+                    { chain with Elements = item :: chain.Elements }
                 updatedChain :: (List.filter (fun c -> c.Hash <> h) bag.Chains)
             | None -> { Hash = h; Elements = [ item ] } :: bag.Chains
 
-        if List.length updatedChains > resizeThreshold then
-            resizeBag { Chains = updatedChains }
-        else
-            { Chains = updatedChains }
-
+        let newBag = { Chains = updatedChains }
+        if List.length updatedChains > resizeThreshold then resizeBag newBag else newBag
 
     let filter (predicate: 'T -> bool) (bag: Bag<'T>) : Bag<'T> =
         let updatedChains =
             bag.Chains
             |> List.choose (fun chain ->
                 let filtered = List.filter predicate chain.Elements
-
-                if filtered.IsEmpty then
-                    None
-                else
-                    Some { chain with Elements = filtered })
+                if filtered.IsEmpty then None else Some { chain with Elements = filtered })
 
         { Chains = updatedChains }
 
     let map (f: 'T -> 'U) (bag: Bag<'T>) : Bag<'U> =
+        let size = List.length bag.Chains
         let updatedChains =
             bag.Chains
             |> List.map (fun chain ->
                 let updatedElements = List.map f chain.Elements
-
-                match updatedElements with
-                | [] -> { Hash = 0; Elements = updatedElements }
-                | head :: _ ->
-                    { Hash = hash head
-                      Elements = updatedElements })
+                let h = hash (List.head updatedElements) size
+                { Hash = h; Elements = updatedElements })
 
         { Chains = updatedChains }
-    
+
     let countElement (bag: Bag<'T>) (item: 'T) : int =
+        let h = hash item (List.length bag.Chains)
         bag.Chains
-        |> List.sumBy (fun chain -> chain.Elements |> List.filter ((=) item) |> List.length)
+        |> List.sumBy (fun chain -> if chain.Hash = h then List.filter ((=) item) chain.Elements |> List.length else 0)
 
     let toListWithCounter (bag: Bag<'T>) : ('T * int) list =
         bag.Chains
@@ -153,38 +136,34 @@ module SeparateChainBag =
             | (false, _), (true, count2) -> acc && count2 = 0  
             | _ -> false) true
 
-
     let merge (bag1: Bag<'T>) (bag2: Bag<'T>) : Bag<'T> =
-        let addItemToBag bag item =
-            let h = hash item
+        let size = max (List.length bag1.Chains) 1 
+        let hashWithSize item = hash item size
 
+        let addItemToBag bag item =
+            let h = hashWithSize item
             match List.tryFind (fun chain -> chain.Hash = h) bag.Chains with
             | Some chain ->
-                let updatedChain =
-                    { chain with
-                        Elements = item :: chain.Elements }
-
-                updatedChain :: List.filter (fun c -> c.Hash <> h) bag.Chains
-            | None -> { Hash = h; Elements = [ item ] } :: bag.Chains
+                let updatedChain = { chain with Elements = item :: chain.Elements }
+                { bag with Chains = updatedChain :: List.filter (fun c -> c.Hash <> h) bag.Chains }
+            | None ->
+                { bag with Chains = { Hash = h; Elements = [ item ] } :: bag.Chains }
 
         let mergedBag =
             bag2.Chains
-            |> List.fold
-                (fun acc chain ->
-                    chain.Elements
-                    |> List.fold (fun b e -> { b with Chains = addItemToBag b e }) acc)
-                bag1
-
+            |> List.fold (fun acc chain -> List.fold addItemToBag acc chain.Elements) bag1
 
         let filteredBag =
             { mergedBag with
-                Chains = List.filter (fun chain -> not (List.isEmpty chain.Elements)) mergedBag.Chains }
+                Chains =
+                    mergedBag.Chains
+                    |> List.filter (fun chain -> not (List.isEmpty chain.Elements)) }
 
- 
         if List.length filteredBag.Chains > resizeThreshold then
             resizeBag filteredBag
         else
             filteredBag
+
 
 
     let foldLeft (folder: 'State -> 'T -> 'State) (state: 'State) (bag: Bag<'T>) : 'State =
