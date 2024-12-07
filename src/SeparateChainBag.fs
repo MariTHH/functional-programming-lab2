@@ -11,8 +11,8 @@ module SeparateChainBag =
 
     let private hash (x: 'T) (size: int) = abs (x.GetHashCode()) % size
 
-    let resizeThreshold = 10
     let resizeFactor = 2.0
+
 
     let resizeBag (bag: Bag<'T>) : Bag<'T> =
         let totalElements = List.sumBy (fun chain -> List.length chain.Elements) bag.Chains
@@ -26,7 +26,7 @@ module SeparateChainBag =
             let rec rehashChains chains =
                 match chains with
                 | [] -> ()
-                | { Elements = elems } :: rest ->
+                | { Elements = elems } :: rest -> 
                     elems |> List.iter (fun item ->
                         let h = hash item newSize
                         newChains.[h] <- item :: newChains.[h])
@@ -34,10 +34,7 @@ module SeparateChainBag =
 
             rehashChains bag.Chains
 
-            { Chains =
-                newChains
-                |> Array.toList
-                |> List.mapi (fun i elements -> { Hash = i; Elements = elements }) }
+            { Chains = newChains |> Array.toList |> List.mapi (fun i elements -> { Hash = i; Elements = elements }) }
         else
             bag
 
@@ -49,6 +46,8 @@ module SeparateChainBag =
             bag.Chains
             |> List.tryFind (fun chain -> chain.Hash = h)
             |> Option.bind (fun chain -> List.tryFind ((=) item) chain.Elements)
+
+    let resizeThreshold = 10
 
     let remove (item: 'T) (bag: Bag<'T>) : Bag<'T> =
         let h = hash item (List.length bag.Chains)
@@ -74,7 +73,6 @@ module SeparateChainBag =
                     [ chain ])
 
         { Chains = updatedChains }
-
 
     let add (item: 'T) (bag: Bag<'T>) : Bag<'T> =
         let size = max (List.length bag.Chains) 1
